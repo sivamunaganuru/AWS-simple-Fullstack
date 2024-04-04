@@ -40,22 +40,50 @@ function App() {
     try {
       await schema.validate({ inputName, inputFile }, { abortEarly: false });
       setErrors({});
+      
+      // Fetch the pre-signed URL from your API
+      const response = await fetch(import.meta.env.VITE_API_URL);
+      const data = await response.json();
+      
+      if (response.ok) {
+        const { url, key } = data;
+        console.log(url, key);
+        // Upload the file to the pre-signed URL
+        const uploadResponse = await fetch(url, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          },
+          body: inputFile,
+        });
 
-      setTimeout(() => {
-        setLoading(false);
-        toast.success('File and name submitted successfully!');
-      }, 2000);
+        if (uploadResponse.ok) {
+          setLoading(false);
+          toast.success('File uploaded successfully!');
+        } else {
+          throw new Error('Upload failed');
+        }
+      } else {
+        throw new Error('Failed to get pre-signed URL');
+      }
     } catch (error) {
       setLoading(false);
-  
-      const validationErrors = error.inner.reduce((acc, curr) => {
-        if (!acc[curr.path]) toast.error(curr.message);
-        acc[curr.path] = curr.message;
-        return acc;
-      }, {});
-      setErrors(validationErrors);
+      
+      // Handling validation errors
+      if (error.inner) {
+        const validationErrors = error.inner.reduce((acc, curr) => {
+          if (!acc[curr.path]) toast.error(curr.message);
+          acc[curr.path] = curr.message;
+          return acc;
+        }, {});
+        setErrors(validationErrors);
+      } else {
+        // Handling fetch and upload errors
+        toast.error(error.message || 'An error occurred');
+      }
     }
-  };
+};
+
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
@@ -89,7 +117,7 @@ function App() {
              leading-tight focus:outline-none focus:shadow-outline"
             id="fileInput"
             type="file"
-            accept=".txt"
+            accept=".pdf"
             onChange={(e) => setInputFile(e.target.files[0])}
           />
           {errors.inputFile && <p className="text-red-500 text-xs italic">{errors.inputFile}</p>}
