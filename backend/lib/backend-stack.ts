@@ -1,10 +1,11 @@
 import { Construct } from 'constructs';
 import * as cdk from 'aws-cdk-lib';
 import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb'
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as iam from 'aws-cdk-lib/aws-iam';
-
+import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources'
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 export class BackendStack extends cdk.Stack {
@@ -25,15 +26,27 @@ export class BackendStack extends cdk.Stack {
         },
       ],
     });
+    
 
-    const function_name = 'PresignedUrlFunction';
-    const lambda_path = 'lambda/preSignedURL';
+    const dynamodbTable = new dynamodb.TableV2(this, 'InputTable', {
+      tableName: 'InputTable',
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING },
+      dynamoStream : dynamodb.StreamViewType.NEW_IMAGE,
+      billing: dynamodb.Billing.onDemand()
+    });
+
+    // PRESIGNED S3 URL
+    const presignedMetadata = {
+      function_name: 'PresignedUrlFunction',
+      lambda_path: 'lambda/preSignedURL',
+    };
 
     const presignedUrlFunction = new lambda.Function(this, 'PresignedUrlFunction', {
-      functionName: function_name,
+      functionName: presignedMetadata.function_name,
       runtime: lambda.Runtime.NODEJS_20_X, // Choose the appropriate runtime
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(lambda_path), // Update with the path to your Lambda function's directory
+      code: lambda.Code.fromAsset(presignedMetadata.lambda_path), // Update with the path to your Lambda function's directory
       environment: {
         BUCKET_NAME: this.uploadBucket.bucketName,
       },
@@ -50,18 +63,68 @@ export class BackendStack extends cdk.Stack {
       )
     }
 
+     // DYNAMODB UPDATE
+     const dynamodbMetadata = {
+      function_name: 'DynamoInsertFunction',
+      lambda_path: 'lambda/dynamoInsert',
+    };
+
+    const dynamoInsertFunction = new lambda.Function(this, 'DynamoInsertFunction', {
+      functionName: dynamodbMetadata.function_name,
+      runtime: lambda.Runtime.NODEJS_20_X, // Choose the appropriate runtime
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset(dynamodbMetadata.lambda_path), // Update with the path to your Lambda function's directory
+      environment: {
+        TABLE_NAME: dynamodbTable.tableName,
+      },
+    });
+    dynamodbTable.grantWriteData(dynamoInsertFunction);
+
+    // use a lambda event source to trigger the function when a new record is added to the dynamodb table
+    const ec2FunctionMetadata = {
+      function_name: 'Ec2Function',
+      lambda_path: 'lambda/ec2Trigger',
+    };
+
+    const ec2Function = new lambda.Function(this, 'Ec2Function',{
+      functionName: ec2FunctionMetadata.function_name,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset(ec2FunctionMetadata.lambda_path),
+    });
+
+    ec2Function.addEventSource(new lambdaEventSources.DynamoEventSource(dynamodbTable, {
+      startingPosition: lambda.StartingPosition.TRIM_HORIZON,
+    }));
+
+    
+
     const api = new apigateway.RestApi(this, 'UploadApi', {
       restApiName: 'Upload Service',
     });
 
     const upload = api.root.addResource('upload');
-    upload.addMethod('GET', new apigateway.LambdaIntegration(presignedUrlFunction),
-    );
+    upload.addMethod('GET', new apigateway.LambdaIntegration(presignedUrlFunction));
+
+    const dynamoInsert = api.root.addResource('dynamoInsert');
+    dynamoInsert.addMethod('POST', new apigateway.LambdaIntegration(dynamoInsertFunction));
+
+    
+    upload.addCorsPreflight({
+      allowOrigins: ['*'],
+      allowMethods: [ 'GET', 'OPTIONS'],
+    });
+
+    dynamoInsert.addCorsPreflight({
+      allowOrigins: ['*'],
+      allowMethods: [ 'POST', 'OPTIONS'],
+    });
 
     this.apiEndpoint = new cdk.CfnOutput(this, 'ApiEndpoint', {
       value: api.url,
       description: 'API Gateway endpoint URL for the Upload Service',
     });
+
   }
 }
 

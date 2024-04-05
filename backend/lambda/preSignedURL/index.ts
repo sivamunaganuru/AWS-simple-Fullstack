@@ -11,8 +11,9 @@ const bucketName = process.env.BUCKET_NAME || '';
 
 exports.handler = async (event: APIGatewayProxyEvent, context: Context) => {
     console.log("Received event:", JSON.stringify(event, null, 2));
-    const key = `uploads/${event.requestContext.requestId}`;
 
+    const key = `uploads/${event.queryStringParameters?.filename}+${Date.now()}`;
+    
     console.log(`Generating a pre-signed URL for key: ${key} in bucket: ${bucketName}`);
 
     const command = new PutObjectCommand({
@@ -29,7 +30,7 @@ exports.handler = async (event: APIGatewayProxyEvent, context: Context) => {
                 "Access-Control-Allow-Origin": "*", // Adjust according to your security requirements
                 "Access-Control-Allow-Credentials": true,
             },
-            body: JSON.stringify({ url, key }),
+            body: JSON.stringify({ url, key , bucketName}),
         };
     } catch (err) {
         console.error("Error generating pre-signed URL:", err);

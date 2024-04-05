@@ -1,0 +1,15 @@
+{
+  "name": "dynamoinsert",
+  "version": "1.0.0",
+  "description": "contains the function for lambda",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "types": "./index.d.ts",
+  "dependencies": {
+    "nanoid": "^3.3.6"
+  }
+}
