@@ -1,12 +1,13 @@
-import { Construct } from 'constructs';
 import * as cdk from 'aws-cdk-lib';
+import { Construct } from 'constructs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb'
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as iam from 'aws-cdk-lib/aws-iam';
-import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources'
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import { SimpleEc2Stack } from './ec2-stack';
 
 export class BackendStack extends cdk.Stack {
   public readonly uploadBucket: s3.Bucket;
@@ -80,6 +81,8 @@ export class BackendStack extends cdk.Stack {
     });
     dynamodbTable.grantWriteData(dynamoInsertFunction);
 
+    const ec2Stack = new SimpleEc2Stack(this, 'SimpleEc2Stack');
+
     // use a lambda event source to trigger the function when a new record is added to the dynamodb table
     const ec2FunctionMetadata = {
       function_name: 'Ec2Function',
@@ -91,14 +94,44 @@ export class BackendStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(ec2FunctionMetadata.lambda_path),
+      environment: {
+        SECURITY_GROUP_ID: ec2Stack.securityGroup.securityGroupId,
+        // KEY_PAIR_NAME: ec2Stack.keyValuePair.keyName,
+        // IMAGE_AMI : ec2.AmazonLinuxGeneration.AMAZON_LINUX_2
+        // const subnetId = process.env.SUBNET_ID;
+      },
     });
+
+    const ec2Policy = new iam.PolicyStatement({
+      actions: [
+        "ec2:Describe*",
+        "ec2:RunInstances",
+        "ec2:CreateKeyPair",
+        "ec2:CreateSecurityGroup",
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:CreateTags",
+        "ec2:CreateInstanceProfile",
+        "ec2:AssociateIamInstanceProfile",
+        "ec2:StartInstances",
+        "ec2:StopInstances",
+        "ec2:TerminateInstances",
+        "ec2:CreateInstance"
+      ],
+      resources: ['*'],
+    });
+    
+    // Attach the policy to the Lambda function's execution role
+    ec2Function.role?.attachInlinePolicy(
+      new iam.Policy(this, 'ec2-access-policy', {
+        statements: [ec2Policy],
+      }),
+    );
 
     ec2Function.addEventSource(new lambdaEventSources.DynamoEventSource(dynamodbTable, {
       startingPosition: lambda.StartingPosition.TRIM_HORIZON,
     }));
 
-    
-
+    // API Gateway
     const api = new apigateway.RestApi(this, 'UploadApi', {
       restApiName: 'Upload Service',
     });

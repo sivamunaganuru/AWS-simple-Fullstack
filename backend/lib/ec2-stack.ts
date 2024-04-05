@@ -1,67 +1,62 @@
-import * as cdk from '@aws-cdk/core';
-import * as ec2 from '@aws-cdk/aws-ec2';
-import * as iam from '@aws-cdk/aws-iam'; 
+import { Construct } from 'constructs';
+import * as cdk from 'aws-cdk-lib';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as iam from 'aws-cdk-lib/aws-iam';
 
 export class SimpleEc2Stack extends cdk.Stack {
-  constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
+
+  public readonly securityGroup: ec2.SecurityGroup;
+  // public readonly keyValuePair: ec2.CfnKeyPair;
+  // public readonly ec2Role: iam.Role;
+  public readonly vpce: ec2.VpcEndpoint;
+  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const defaultVpc = ec2.Vpc.fromLookup(this, 'VPC', { isDefault: true })
+    const Vpcs = new ec2.Vpc(this, 'simple-instance-1-vpc', {
+      maxAzs: 3,
+      natGateways: 1,
+    });
     
-    const role = new iam.Role(
-        this,
-        'simple-instance-1-role',
-        { assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com') }
-      )
+    // const ec2Role = new iam.Role(this, 'EC2Role', {
+    //     assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
+    //     roleName: 'simple-instance-1-role',
+    //   });
       
-    const securityGroup = new ec2.SecurityGroup(
-      this,
+    //   // Add policies to the role
+    // ec2Role.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonS3FullAccess'));
+    // ec2Role.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonDynamoDBFullAccess'));
+    // ec2Role.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AWSLambda_FullAccess'));
+      
+    this.securityGroup = new ec2.SecurityGroup(this,
       'simple-instance-1-sg',
       {
-        vpc: defaultVpc,
+        vpc: Vpcs,
         allowAllOutbound: true,
         securityGroupName: 'simple-instance-1-sg',
       }
     )
 
-    securityGroup.addIngressRule(
+    this.securityGroup.addIngressRule(
       ec2.Peer.anyIpv4(),
       ec2.Port.tcp(22),
       'Allows SSH access from Internet'
     )
 
-    securityGroup.addIngressRule(
+    this.securityGroup.addIngressRule(
       ec2.Peer.anyIpv4(),
       ec2.Port.tcp(80),
       'Allows HTTP access from Internet'
     )
 
-    securityGroup.addIngressRule(
+    this.securityGroup.addIngressRule(
       ec2.Peer.anyIpv4(),
       ec2.Port.tcp(443),
       'Allows HTTPS access from Internet'
     )
 
-    // Finally lets provision our ec2 instance
-    const instance = new ec2.Instance(this, 'simple-instance-1', {
-      vpc: defaultVpc,
-      role: role,
-      securityGroup: securityGroup,
-      instanceName: 'simple-instance-1',
-      instanceType: ec2.InstanceType.of( 
-        ec2.InstanceClass.T2,
-        ec2.InstanceSize.MICRO
-      ),
-      machineImage: ec2.MachineImage.latestAmazonLinux({
-        generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
-      }),
+    // this.keyValuePair = new ec2.CfnKeyPair(this, 'simple-instance-1-key-pair', {
+    //   keyName: 'simple-instance-1-key-pair',
+    // });
 
-      keyName: 'simple-instance-1-key',
-    })
-
-
-    new cdk.CfnOutput(this, 'simple-instance-1-output', {
-      value: instance.instancePublicIp
-    })
   }
 }
