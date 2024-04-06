@@ -16,7 +16,7 @@ echo "DynamoDB item ID: ${DYNAMO_ITEM_ID}"
 echo "Region: ${REGION}"
 
 # Constants
-CURRENT_DATE=$(date +%Y-%m-%d-%H-%M-%S-%3N)
+CURRENT_DATE=$(date +%Y-%m-%d-%H-%M-%S-%3Ngit )
 OUTPUT_FILE="OutputFile_${CURRENT_DATE}.txt"
 OUTPUT_PATH="output/${OUTPUT_FILE}"
 
