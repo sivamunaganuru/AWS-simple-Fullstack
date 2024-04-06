@@ -8,6 +8,13 @@ DYNAMO_TABLE_NAME=$4
 DYNAMO_ITEM_ID=$5
 REGION=$6
 
+echo "Input file path: ${INPUT_FILE_PATH}"
+echo "Input text: ${INPUT_TEXT}"
+echo "Bucket name: ${BUCKET_NAME}"
+echo "DynamoDB table name: ${DYNAMO_TABLE_NAME}"
+echo "DynamoDB item ID: ${DYNAMO_ITEM_ID}"
+echo "Region: ${REGION}"
+
 # Constants
 OUTPUT_FILE="OutputFile.txt"
 OUTPUT_PATH="output/${OUTPUT_FILE}"
@@ -36,3 +43,10 @@ aws dynamodb update-item --table-name "${DYNAMO_TABLE_NAME}" \
 --expression-attribute-values "{\":p\":{\"S\":\"${BUCKET_NAME}/${OUTPUT_PATH}\"}}" \
 --region $REGION \
 --return-values ALL_NEW
+
+# Terminate the instance
+
+sleep 10
+TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"`
+INSTANCE_ID=`curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id`
+aws ec2 terminate-instances --instance-ids $INSTANCE_ID
