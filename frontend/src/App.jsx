@@ -1,4 +1,4 @@
-import React, { useState,useEffect } from 'react';
+import React, { useState,useRef } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import * as Yup from 'yup';
@@ -17,54 +17,71 @@ function App() {
     inputName: '',
     inputFile: '',
   });
+  const fileInputRef = useRef(null);
 
-  useEffect(() => {
-    const validateField = async (field, value) => {
-      try {
-        await schema.validateAt(field, { [field]: value });
-        setErrors((prevErrors) => ({ ...prevErrors, [field]: '' }));
-      } catch (error) {
-        setErrors((prevErrors) => ({ ...prevErrors, [field]: error.message }));
-      }
-    };
+  const handleInputNameChange = async (event) => {
+    const newName = event.target.value;
+    setInputName(newName);
+    try {
+      await schema.validateAt("inputName", { inputName: newName });
+      setErrors((prevState) => ({ ...prevState, inputName: '' }));
+    } catch (error) {
+      setErrors((prevState) => ({ ...prevState, inputName: error.message }));
+    }
+  };
 
-    validateField('inputName', inputName);
-    validateField('inputFile', inputFile);
-  }, [inputName, inputFile]);
-
-
-  const getPresignedUrl = async (filename, filetype) => {
-    const response = await axios.get(`${import.meta.env.VITE_API_URL}/upload`, {
-      params: { filename, filetype },
-    });
+  const handleFileInputChange = async (event) => {
+    const file = event.target.files[0];
+    if (!file) {
+      setInputFile(null);
+      setErrors((prevState) => ({ ...prevState, inputFile: 'A file is required.' }));
+      return;
+    }
+    try {
+      await schema.validateAt("inputFile", { inputFile: file });
+      setInputFile(file);
+      setErrors((prevState) => ({ ...prevState, inputFile: '' }));
+    } catch (error) {
+      setInputFile(null);
+      setErrors((prevState) => ({ ...prevState, inputFile: error.message }));
+    }
+  };
   
-    if (response.status === 200) {
+  
+  const getPresignedUrl = async (filename, filetype) => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/upload`, {
+        params: { filename, filetype },
+      });
       return response.data;
-    } else {
-      throw new Error('Failed to get pre-signed URL');
+    } catch (error) {
+      console.error(error);
+      throw new Error('Failed to get pre-signed URL: Check the URL in the .env file.');
     }
   };
   
   const uploadFile = async (url, file) => {
-    const response = await axios.put(url, file, {
-      headers: {
-        'Content-Type': file.type,
-      },
-    });
-    if (response.status !== 200) {
-      throw new Error('Upload failed');
+    try{
+      const response = await axios.put(url, file, {
+        headers: {
+          'Content-Type': file.type,
+        },
+      });
+    } catch (error) {
+      throw new Error('Uploading File to S3 failed.');
     }
   };
   
   const saveFileDetails = async (inputName, bucketName, key) => {
-    const response = await axios.post(`${import.meta.env.VITE_API_URL}/dynamoInsert`, {
-      inputText: inputName,
-      inputFilePath: `${bucketName}/${key}`,
-    });
-    if (response.status === 200) {
-      toast.success('File details saved successfully!');
-    } else {
-      throw new Error('Failed to save file details');
+
+    try{
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/dynamoInsert`, {
+        inputText: inputName,
+        inputFilePath: `${bucketName}/${key}`,
+      });
+      toast.success('File uploaded successfully!');
+    }catch (error) {
+      throw new Error('Failed to save file details in DynamoDB. Check the API URL in the .env file.');
     }
   };
   
@@ -81,12 +98,12 @@ function App() {
       await saveFileDetails(inputName, bucketName, key);
   
       setInputName('');
-      // setInputFile(null);
+      fileInputRef.current.value = '';
       setLoading(false);
     } catch (error) {
       setLoading(false);
+       // Yup validation errors
       if (error.inner) {
-        // Yup validation errors
         const validationErrors = error.inner.reduce((acc, curr) => {
           acc[curr.path] = curr.message;
           return acc;
@@ -119,7 +136,7 @@ function App() {
             type="text"
             placeholder="Enter filename"
             value={inputName}
-            onChange={(e) => setInputName(e.target.value)}
+            onChange={handleInputNameChange}
           />
           {errors.inputName && <p className="text-red-500 text-xs italic">{errors.inputName}</p>}
         </div>
@@ -134,7 +151,8 @@ function App() {
             id="fileInput"
             type="file"
             accept=".txt"
-            onChange={(e) => setInputFile(e.target.files[0])}
+            ref={fileInputRef}
+            onChange={handleFileInputChange}
           />
           {errors.inputFile && <p className="text-red-500 text-xs italic">{errors.inputFile}</p>}
         </div>

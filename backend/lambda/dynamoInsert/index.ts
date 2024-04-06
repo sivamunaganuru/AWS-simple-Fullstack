@@ -1,13 +1,9 @@
-// Lambda function code (using AWS SDK v3)
 import { APIGatewayProxyEvent, Context } from 'aws-lambda';
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { PutCommand, DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-// import { nanoid } from 'nanoid';
-
 
 const client = new DynamoDBClient({region: process.env.AWS_REGION});
 const docClient = DynamoDBDocumentClient.from(client);
-
 const tableName = process.env.TABLE_NAME || '';
 
 exports.handler = async (event: APIGatewayProxyEvent, context: Context) => {
@@ -34,7 +30,7 @@ exports.handler = async (event: APIGatewayProxyEvent, context: Context) => {
         return {
             statusCode: 200,
             headers: {
-                "Access-Control-Allow-Origin": "*", // Adjust according to your security requirements
+                "Access-Control-Allow-Origin": "*",
                 "Access-Control-Allow-Credentials": true,
             },
             body: JSON.stringify({ response }),

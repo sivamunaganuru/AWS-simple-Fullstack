@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Required parameters
 INPUT_FILE_PATH=$1
 INPUT_TEXT=$2
 BUCKET_NAME=$3
@@ -16,7 +15,7 @@ echo "DynamoDB item ID: ${DYNAMO_ITEM_ID}"
 echo "Region: ${REGION}"
 
 # Constants
-CURRENT_DATE=$(date +%Y-%m-%d-%H-%M-%S-%3Ngit )
+CURRENT_DATE=$(date +%Y-%m-%d-%H-%M-%S-%3N)
 OUTPUT_FILE="OutputFile_${CURRENT_DATE}.txt"
 OUTPUT_PATH="output/${OUTPUT_FILE}"
 
@@ -46,8 +45,5 @@ aws dynamodb update-item --table-name "${DYNAMO_TABLE_NAME}" \
 --return-values ALL_NEW
 
 # Terminate the instance
-
 sleep 10
-TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"`
-INSTANCE_ID=`curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id`
-aws ec2 terminate-instances --instance-ids $INSTANCE_ID
+sudo shutdown now

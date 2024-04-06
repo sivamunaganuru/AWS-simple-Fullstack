@@ -1,7 +1,5 @@
 import { EC2Client, RunInstancesCommand, _InstanceType } from "@aws-sdk/client-ec2";
-import {createIamRole} from './createIamRole';
 
-// const securityGroupId = process.env.SECURITY_GROUP_ID;
 const dynamoTableName = process.env.TABLE_NAME;
 const bucketName = process.env.BUCKET_NAME;
 const awsRegion = process.env.AWS_REGION;
@@ -39,9 +37,6 @@ export const handler = async (event : any) => {
         const userDataEncoded = Buffer.from(userDataScript).toString('base64');
 
         const ec2Client = new EC2Client({ region: awsRegion});
-        
-        // const { instanceProfileName } = await createIamRole();
-
         const command = new RunInstancesCommand({
             ImageId: "ami-0b990d3cfca306617" ,
             InstanceType: "t2.micro",
@@ -53,6 +48,7 @@ export const handler = async (event : any) => {
               },
             InstanceInitiatedShutdownBehavior: "terminate",
           });
+
         const response = await ec2Client.send(command);
         
         if (!response.Instances) {
