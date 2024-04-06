@@ -106,7 +106,7 @@ Here's a broder breakdown:
     - All EC2 instances are terminated.
 
 ### Video Demonstration
-![Video](https://github.com/sivamunaganuru/AWS-simple-Fullstack/blob/main/assets/multipUpload.mp4)
+![View Video Demo](https://github.com/sivamunaganuru/AWS-simple-Fullstack/blob/main/assets/multipUpload.mp4)
 
 ### User Interface Snapshot
 
