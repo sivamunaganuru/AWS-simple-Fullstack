@@ -89,7 +89,7 @@ export class BackendStack extends cdk.Stack {
 
     const ec2Stack = new SimpleEc2Stack(this, 'SimpleEc2Stack');
 
-    // use a lambda event source to trigger the function when a new record is added to the dynamodb table
+    // Usinng lambda event source to trigger the function when a new record is added to the dynamodb table
     const ec2FunctionMetadata = {
       function_name: 'Ec2Function',
       lambda_path: 'lambda/ec2Trigger',
@@ -110,6 +110,26 @@ export class BackendStack extends cdk.Stack {
       },
     });
 
+    const iamPolicy = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        "iam:CreateRole",
+        "iam:AttachRolePolicy",
+        "iam:PutRolePolicy",
+        "iam:CreateInstanceProfile",
+        "iam:AddRoleToInstanceProfile",
+        // Add other IAM actions your function needs
+      ],
+      resources: ['*'],
+    });
+    
+    // Assuming ec2Function is your Lambda function
+    ec2Function.role?.attachInlinePolicy(
+      new iam.Policy(this, 'iam-access-policy', {
+        statements: [iamPolicy],
+      }),
+    );
+    
     const ec2Policy = new iam.PolicyStatement({
       actions: [
         "ec2:Describe*",

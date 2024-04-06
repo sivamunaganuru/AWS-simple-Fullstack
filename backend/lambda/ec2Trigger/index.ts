@@ -2,9 +2,6 @@ import { EC2Client, RunInstancesCommand, _InstanceType } from "@aws-sdk/client-e
 import {createIamRole} from './createIamRole';
 
 const securityGroupId = process.env.SECURITY_GROUP_ID;
-// const keyPairName = process.env.KEY_PAIR_NAME;
-// const iamRole = process.env.IAM_ROLE;
-// const imageId = process.env.IMAGE_AMI;
 const dynamoTableName = process.env.TABLE_NAME;
 const bucketName = process.env.BUCKET_NAME;
 const awsRegion = process.env.AWS_REGION;
@@ -12,7 +9,7 @@ const awsRegion = process.env.AWS_REGION;
 export const handler = async (event : any) => {
     try {
         console.log("Received event:", JSON.stringify(event, null, 2));
-        // loop the event till we get event.eventName === 'INSERT'
+        
         let insertRecord;
         for(const record of event.Records){
             if(record.eventName === 'INSERT'){
@@ -29,8 +26,10 @@ export const handler = async (event : any) => {
             };
         }
         const tableData = insertRecord.dynamodb.NewImage;
-
         const {inputText,id,inputFilePath} = tableData;
+
+        console.log("Processing record:", JSON.stringify(tableData, null, 2));
+
         const userDataScript = `#!/bin/bash
             aws s3 cp s3://${bucketName}/data/processing.sh /tmp/processing.sh
             chmod +x /tmp/processing.sh
@@ -71,10 +70,10 @@ export const handler = async (event : any) => {
             
     } catch (error) {
         console.error("Error in EC2 provisioning:", error);
-        if (error instanceof Error) { // Type guard to check if error is an instance of Error
+        if (error instanceof Error) {
             throw new Error(`Error in EC2 provisioning: ${error.message}`);
         } else {
-            throw error; // Re-throw if we can't handle the error
+            throw error;
         }
     }
 };
