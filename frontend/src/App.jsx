@@ -82,7 +82,7 @@ function App() {
   
       // Resetting form state on success
       setInputName('');
-      setInputFile(null);
+      // setInputFile(null);
       setLoading(false);
     } catch (error) {
       setLoading(false);
@@ -134,7 +134,7 @@ function App() {
              leading-tight focus:outline-none focus:shadow-outline"
             id="fileInput"
             type="file"
-            accept=".pdf"
+            accept=".txt"
             onChange={(e) => setInputFile(e.target.files[0])}
           />
           {errors.inputFile && <p className="text-red-500 text-xs italic">{errors.inputFile}</p>}

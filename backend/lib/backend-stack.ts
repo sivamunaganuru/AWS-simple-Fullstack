@@ -6,7 +6,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
-import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as S3Deployment from "aws-cdk-lib/aws-s3-deployment";
 import { SimpleEc2Stack } from './ec2-stack';
 
 export class BackendStack extends cdk.Stack {
@@ -28,6 +28,12 @@ export class BackendStack extends cdk.Stack {
       ],
     });
     
+    // upload a short text file to the bucket the above bucket
+    new S3Deployment.BucketDeployment(this, 'DeployFiles', {
+      sources: [S3Deployment.Source.asset("ec2Scripts")],
+      destinationBucket: this.uploadBucket,
+      destinationKeyPrefix: 'data',
+    });
 
     const dynamodbTable = new dynamodb.TableV2(this, 'InputTable', {
       tableName: 'InputTable',
@@ -99,6 +105,8 @@ export class BackendStack extends cdk.Stack {
         // KEY_PAIR_NAME: ec2Stack.keyValuePair.keyName,
         // IMAGE_AMI : ec2.AmazonLinuxGeneration.AMAZON_LINUX_2
         // const subnetId = process.env.SUBNET_ID;
+        TABLE_NAME: dynamodbTable.tableName,
+        BUCKET_NAME: this.uploadBucket.bucketName,
       },
     });
 
