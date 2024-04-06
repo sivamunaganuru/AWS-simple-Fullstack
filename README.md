@@ -4,9 +4,7 @@ This is Simple Full Stack project using AWS resources. Frontend takes a file fro
 
 ## Project Architecture
 
-This project is designed to demonstrate a simple full-stack application using various AWS services. The architecture is as follows:
-
-- **Frontend**: A single-page application (SPA) built with React. It provides a user interface for uploading text files. When a file is uploaded, it directly uploads to an Amazon S3 bucket using a preSigned URL.
+- **Frontend**: A responsive built with React and tailwind. It provides a user interface for uploading text files. When a file is uploaded, it directly uploads to an Amazon S3 bucket using a preSigned URL.
   
 - **Amazon S3 Bucket**: Serves as the storage location for the uploaded files. And also for the processed Output Files.
 
@@ -78,7 +76,7 @@ Before you begin, make sure you have Node.js, AWS CLI, and AWS CDK installed on 
     ```bash
     cdk deploy BackendStack
     ```
-    Once the deployement is succefull, copy the Api gateway URL from console and update the VITE_API_URL = "your backend URL" in the .env file of frontend directory
+    Once the deployement is succefull, **copy the Api gateway URL from console and update the VITE_API_URL = "your backend URL" in the .env file of frontend directory**
 
 ### Usage
 
@@ -91,12 +89,7 @@ npm run dev
 
 This will launch the application in your browser, where you can upload files. Uploaded files are processed by the backend infrastructure, and results are stored in DynamoDB.
 
-Note : By default it will run in the us-west-1(this can be changed in backend/lib/backend-stack.ts)
-
-## Results
-To include and describe the results of your project, especially the process as captured in the video within the `assets` folder, and to showcase the user interface through pictures, you can update the README.md like so:
-
----
+Note : By default it will run in the us-west-1 (this can be changed in backend/lib/backend-stack.ts)
 
 ## Results
 
@@ -113,6 +106,7 @@ Here's a broder breakdown:
     - All EC2 instances are terminated.
 
 ### Video Demonstration
+![Video](https://github.com/sivamunaganuru/AWS-simple-Fullstack/blob/main/assets/multipUpload.mp4)
 
 ### User Interface Snapshot
 
