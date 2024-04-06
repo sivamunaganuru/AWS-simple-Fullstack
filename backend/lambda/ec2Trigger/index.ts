@@ -1,10 +1,11 @@
 import { EC2Client, RunInstancesCommand, _InstanceType } from "@aws-sdk/client-ec2";
 import {createIamRole} from './createIamRole';
 
-const securityGroupId = process.env.SECURITY_GROUP_ID;
+// const securityGroupId = process.env.SECURITY_GROUP_ID;
 const dynamoTableName = process.env.TABLE_NAME;
 const bucketName = process.env.BUCKET_NAME;
 const awsRegion = process.env.AWS_REGION;
+const iamName = process.env.IAM_ROLE;
 
 export const handler = async (event : any) => {
     try {
@@ -39,25 +40,21 @@ export const handler = async (event : any) => {
 
         const ec2Client = new EC2Client({ region: awsRegion});
         
-        const { instanceProfileName } = await createIamRole();
-
-        if (!securityGroupId ) {
-            throw new Error("Missing environment variables. Please ensure SECURITY_GROUP_ID is set.");
-        }
+        // const { instanceProfileName } = await createIamRole();
 
         const command = new RunInstancesCommand({
-            // KeyName: keyPairName,
-            // SecurityGroupIds: [securityGroupId],
             ImageId: "ami-0b990d3cfca306617" ,
             InstanceType: "t2.micro",
             MinCount: 1,
             MaxCount: 1,
             UserData: userDataEncoded,
             IamInstanceProfile: {
-                Name: instanceProfileName,
+                Name: iamName,
               },
+            InstanceInitiatedShutdownBehavior: "terminate",
           });
         const response = await ec2Client.send(command);
+        
         if (!response.Instances) {
             throw new Error("No instances created");
         }

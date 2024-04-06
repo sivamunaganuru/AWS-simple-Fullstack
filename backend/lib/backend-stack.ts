@@ -8,7 +8,6 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as S3Deployment from "aws-cdk-lib/aws-s3-deployment";
 import { SimpleEc2Stack } from './ec2-stack';
-
 export class BackendStack extends cdk.Stack {
   public readonly uploadBucket: s3.Bucket;
   public readonly apiEndpoint: cdk.CfnOutput;
@@ -87,9 +86,23 @@ export class BackendStack extends cdk.Stack {
     });
     dynamodbTable.grantWriteData(dynamoInsertFunction);
 
-    const ec2Stack = new SimpleEc2Stack(this, 'SimpleEc2Stack');
+    // const ec2Stack = new SimpleEc2Stack(this, 'SimpleEc2Stack');
 
     // Usinng lambda event source to trigger the function when a new record is added to the dynamodb table
+    const ec2Role = new iam.Role(this, 'EC2Role', {
+      assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
+      roleName: 'SimpleEC2InstanceProfile',
+    });
+    
+      // Add policies to the role
+    ec2Role.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonS3FullAccess'));
+    ec2Role.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonDynamoDBFullAccess'));
+    ec2Role.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AWSLambda_FullAccess'));
+    ec2Role.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonEC2FullAccess'));
+    const instanceProfile = new iam.CfnInstanceProfile(this, 'EC2InstanceProfile', {
+      roles: [ec2Role.roleName],
+    });
+  
     const ec2FunctionMetadata = {
       function_name: 'Ec2Function',
       lambda_path: 'lambda/ec2Trigger',
@@ -101,12 +114,13 @@ export class BackendStack extends cdk.Stack {
       handler: 'index.handler',
       code: lambda.Code.fromAsset(ec2FunctionMetadata.lambda_path),
       environment: {
-        SECURITY_GROUP_ID: ec2Stack.securityGroup.securityGroupId,
+        // SECURITY_GROUP_ID: ec2Stack.securityGroup.securityGroupId,
         // KEY_PAIR_NAME: ec2Stack.keyValuePair.keyName,
         // IMAGE_AMI : ec2.AmazonLinuxGeneration.AMAZON_LINUX_2
         // const subnetId = process.env.SUBNET_ID;
         TABLE_NAME: dynamodbTable.tableName,
         BUCKET_NAME: this.uploadBucket.bucketName,
+        IAM_ROLE : instanceProfile.ref,
       },
     });
 
@@ -129,7 +143,7 @@ export class BackendStack extends cdk.Stack {
         statements: [iamPolicy],
       }),
     );
-    
+
     const ec2Policy = new iam.PolicyStatement({
       actions: [
         "ec2:Describe*",
@@ -154,7 +168,26 @@ export class BackendStack extends cdk.Stack {
         statements: [ec2Policy],
       }),
     );
+    const passRolePolicy = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['iam:PassRole'],
+      // Replace the ARN below with the correct ARN for your IAM role intended for EC2 instances
+      resources: [ec2Role.roleArn], // Use the ARN of the role that will be passed to EC2 instances
+      conditions: {
+        StringEquals: {
+          'iam:PassedToService': 'ec2.amazonaws.com',
+        },
+      },
+    });
+    
+    // Attach the PassRole policy to the Lambda function's execution role
+    ec2Function.role?.attachInlinePolicy(
+      new iam.Policy(this, 'PassRolePolicy', {
+        statements: [passRolePolicy],
+      }),
+    );
 
+    
     ec2Function.addEventSource(new lambdaEventSources.DynamoEventSource(dynamodbTable, {
       startingPosition: lambda.StartingPosition.TRIM_HORIZON,
     }));

@@ -17,15 +17,16 @@ export class SimpleEc2Stack extends cdk.Stack {
       natGateways: 1,
     });
     
-    // const ec2Role = new iam.Role(this, 'EC2Role', {
-    //     assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
-    //     roleName: 'simple-instance-1-role',
-    //   });
+    const ec2Role = new iam.Role(this, 'EC2Role', {
+        assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
+        roleName: 'simple-instance-1-role',
+    });
       
-    //   // Add policies to the role
-    // ec2Role.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonS3FullAccess'));
-    // ec2Role.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonDynamoDBFullAccess'));
-    // ec2Role.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AWSLambda_FullAccess'));
+      // Add policies to the role
+    ec2Role.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonS3FullAccess'));
+    ec2Role.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonDynamoDBFullAccess'));
+    ec2Role.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AWSLambda_FullAccess'));
+    ec2Role.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonEC2FullAccess'));
       
     this.securityGroup = new ec2.SecurityGroup(this,
       'simple-instance-1-sg',

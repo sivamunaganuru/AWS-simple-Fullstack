@@ -3,7 +3,7 @@ import { IAMClient, CreateRoleCommand, AttachRolePolicyCommand, CreateInstancePr
 
 export const createIamRole = async () => {
   const iamClient = new IAMClient({ region: "us-west-1" });
-  const roleName = "MyEC2Role";
+  const roleName = "MyEC2Role1";
   const trustPolicy = {
     Version: "2012-10-17",
     Statement: [{

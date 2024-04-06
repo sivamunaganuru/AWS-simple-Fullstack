@@ -37,7 +37,7 @@ function App() {
     const response = await axios.get(`${import.meta.env.VITE_API_URL}/upload`, {
       params: { filename, filetype },
     });
-    // Axios uses .status to indicate HTTP status codes
+  
     if (response.status === 200) {
       return response.data;
     } else {
@@ -80,7 +80,6 @@ function App() {
       await uploadFile(url, inputFile);
       await saveFileDetails(inputName, bucketName, key);
   
-      // Resetting form state on success
       setInputName('');
       // setInputFile(null);
       setLoading(false);
